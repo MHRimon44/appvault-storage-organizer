@@ -1,0 +1,10 @@
+{
+  "reactNativeVersion": "0.86.0",
+  "dependencies": {
+    "zustand": "^5.0.8",
+    "react-native-safe-area-context": "^5.6.1",
+    "@react-native-vector-icons/material-design-icons": "^12.3.0",
+    "react-native-google-mobile-ads": "^17.0.0"
+  },
+  "nativeDependencies": { "com.android.billingclient:billing": "9.1.0" }
+}
