@@ -1,6 +1,6 @@
 /* eslint-disable no-void */
 /* eslint-disable react-native/no-inline-styles */
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import { Alert, Pressable, Switch, View } from 'react-native';
 import {
   Button,
@@ -17,19 +17,92 @@ import { storage } from '../services/native';
 import { errorMessage } from '../utils/format';
 import type { FileSort } from '../types';
 import { config } from '../config/app';
-import {useTheme} from '../theme';
+import { useTheme } from '../theme';
 
-function SettingsDropdown<T extends string | number>({label, value, options, disabled, onChange}: {label: string; value: T; options: {value: T; label: string}[]; disabled: boolean; onChange(value: T): void}) {
+function SettingsDropdown<T extends string | number>({
+  label,
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: { value: T; label: string }[];
+  disabled: boolean;
+  onChange(value: T): void;
+}) {
   const t = useTheme();
   const [open, setOpen] = useState(false);
   const expanded = open && !disabled;
-  return <View style={{gap: 6}}>
-    <Label style={{fontWeight: '600'}}>{label}</Label>
-    <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${options.find(option => option.value === value)?.label ?? value}`} accessibilityState={{disabled, expanded}} disabled={disabled} onPress={() => setOpen(!open)} style={{minHeight: 44, paddingHorizontal: 12, borderWidth: 1, borderColor: t.line, borderRadius: 12, backgroundColor: t.bg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', opacity: disabled ? 0.65 : 1}}>
-      <Label>{options.find(option => option.value === value)?.label ?? String(value)}</Label><Icon name={expanded ? 'chevron-up' : 'chevron-down'}/>
-    </Pressable>
-    {expanded && <View accessibilityRole="radiogroup" style={{borderWidth: 1, borderColor: t.line, borderRadius: 12, overflow: 'hidden'}}>{options.map(option => <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{checked: option.value === value}} onPress={() => {setOpen(false); onChange(option.value);}} style={{minHeight: 44, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: option.value === value ? t.soft : t.surface}}><Label>{option.label}</Label>{option.value === value && <Icon name="check" color={t.primary}/>}</Pressable>)}</View>}
-  </View>;
+  return (
+    <View style={{ gap: 6 }}>
+      <Label style={{ fontWeight: '600' }}>{label}</Label>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${label}: ${
+          options.find(option => option.value === value)?.label ?? value
+        }`}
+        accessibilityState={{ disabled, expanded }}
+        disabled={disabled}
+        onPress={() => setOpen(!open)}
+        style={{
+          minHeight: 44,
+          paddingHorizontal: 12,
+          borderWidth: 1,
+          borderColor: t.line,
+          borderRadius: 12,
+          backgroundColor: t.bg,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          opacity: disabled ? 0.65 : 1,
+        }}
+      >
+        <Label>
+          {options.find(option => option.value === value)?.label ??
+            String(value)}
+        </Label>
+        <Icon name={expanded ? 'chevron-up' : 'chevron-down'} />
+      </Pressable>
+      {expanded && (
+        <View
+          accessibilityRole="radiogroup"
+          style={{
+            borderWidth: 1,
+            borderColor: t.line,
+            borderRadius: 12,
+            overflow: 'hidden',
+          }}
+        >
+          {options.map(option => (
+            <Pressable
+              key={option.value}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: option.value === value }}
+              onPress={() => {
+                setOpen(false);
+                onChange(option.value);
+              }}
+              style={{
+                minHeight: 44,
+                paddingHorizontal: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: option.value === value ? t.soft : t.surface,
+              }}
+            >
+              <Label>{option.label}</Label>
+              {option.value === value && (
+                <Icon name="check" color={t.primary} />
+              )}
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </View>
+  );
 }
 export function SettingsScreen() {
   const settings = useAppStore(s => s.settings);
@@ -41,8 +114,13 @@ export function SettingsScreen() {
   const [saving, setSaving] = useState(false);
   const change = async (changes: Parameters<typeof update>[0]) => {
     setSaving(true);
-    try {await update(changes);} catch (e) {Alert.alert('Unable to save settings', errorMessage(e));}
-    finally {setSaving(false);}
+    try {
+      await update(changes);
+    } catch (e) {
+      Alert.alert('Unable to save settings', errorMessage(e));
+    } finally {
+      setSaving(false);
+    }
   };
   const run = async (fn: () => Promise<unknown>) => {
     try {
@@ -72,12 +150,53 @@ export function SettingsScreen() {
           <Label title>Preferences</Label>
         </View>
         <View style={styles.between}>
-          <View style={{gap: 4}}><Label style={{fontWeight: '600'}}>Appearance</Label><Label muted>{t.isDark ? 'Dark' : 'Light'}</Label></View>
-          <Switch accessibilityLabel="Dark appearance" value={t.isDark} disabled={saving} onValueChange={dark => void change({theme: dark ? 'dark' : 'light'})} trackColor={{false: t.line, true: t.primary}}/>
+          <View style={{ gap: 4 }}>
+            <Label style={{ fontWeight: '600' }}>Appearance</Label>
+            <Label muted>{t.isDark ? 'Dark' : 'Light'}</Label>
+          </View>
+          <Switch
+            accessibilityLabel="Dark appearance"
+            value={t.isDark}
+            disabled={saving}
+            onValueChange={dark =>
+              void change({ theme: dark ? 'dark' : 'light' })
+            }
+            trackColor={{ false: t.line, true: t.primary }}
+          />
         </View>
-        <SettingsDropdown<FileSort> label="Default sorting" value={settings.sort} disabled={saving} options={[{value: 'newest', label: 'Newest first'}, {value: 'oldest', label: 'Oldest first'}, {value: 'largest', label: 'Largest first'}, {value: 'smallest', label: 'Smallest first'}, {value: 'name', label: 'Name'}]} onChange={sort => void change({sort})}/>
-        <SettingsDropdown label="Large file threshold" value={settings.largeMB} disabled={saving} options={[10, 50, 100, 500].map(value => ({value, label: `${value} MB`}))} onChange={largeMB => void change({largeMB})}/>
-        <SettingsDropdown label="Older file threshold" value={settings.oldDays} disabled={saving} options={[30, 90, 180, 365, 730].map(value => ({value, label: `${value} days`}))} onChange={oldDays => void change({oldDays})}/>
+        <SettingsDropdown<FileSort>
+          label="Default sorting"
+          value={settings.sort}
+          disabled={saving}
+          options={[
+            { value: 'newest', label: 'Newest first' },
+            { value: 'oldest', label: 'Oldest first' },
+            { value: 'largest', label: 'Largest first' },
+            { value: 'smallest', label: 'Smallest first' },
+            { value: 'name', label: 'Name' },
+          ]}
+          onChange={sort => void change({ sort })}
+        />
+        <SettingsDropdown
+          label="Large file threshold"
+          value={settings.largeMB}
+          disabled={saving}
+          options={[10, 50, 100, 500].map(value => ({
+            value,
+            label: `${value} MB`,
+          }))}
+          onChange={largeMB => void change({ largeMB })}
+        />
+        <SettingsDropdown
+          label="Older file threshold"
+          value={settings.oldDays}
+          disabled={saving}
+          options={[30, 90, 180, 365, 730].map(value => ({
+            value,
+            label: `${value} days`,
+          }))}
+          onChange={oldDays => void change({ oldDays })}
+        />
       </Card>
       <Card>
         <Row
