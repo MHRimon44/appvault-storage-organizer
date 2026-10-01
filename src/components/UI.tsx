@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -80,6 +81,7 @@ export function Button({
   title,
   onPress,
   icon,
+  iconOnly = false,
   danger = false,
   secondary = false,
   disabled = false,
@@ -87,6 +89,7 @@ export function Button({
   title: string;
   onPress(): void;
   icon?: IconName;
+  iconOnly?: boolean;
   danger?: boolean;
   secondary?: boolean;
   disabled?: boolean;
@@ -101,44 +104,93 @@ export function Button({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
+        iconOnly && icon ? styles.iconOnlyButton : undefined,
         {
           backgroundColor: secondary ? t.soft : danger ? t.danger : '#4058D6',
           opacity: disabled ? 0.45 : pressed ? 0.75 : 1,
         },
       ]}
     >
-      {icon && <Icon name={icon} color={color} size={19} />}
-      <Text style={{ color, fontWeight: '600', fontSize: 14 }}>{title}</Text>
+      {icon && <Icon name={icon} color={color} size={iconOnly ? 22 : 19} />}
+      {(!iconOnly || !icon) && (
+        <Text style={{ color, fontWeight: '600', fontSize: 14 }}>{title}</Text>
+      )}
     </Pressable>
   );
 }
 export function Chip({
   title,
+  icon,
+  iconOnly = false,
   active = false,
   onPress,
 }: {
   title: string;
+  icon?: IconName;
+  iconOnly?: boolean;
   active?: boolean;
   onPress(): void;
 }) {
   const t = useTheme();
+  const { fontScale } = useWindowDimensions();
+  const height = Math.max(36, Math.ceil(18 * fontScale + 16));
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={title}
       accessibilityState={{ selected: active }}
+      hitSlop={{ top: 4, bottom: 4 }}
       onPress={onPress}
       style={[
         styles.chip,
         {
+          height,
           backgroundColor: active ? t.soft : t.surface,
           borderColor: active ? t.primary : t.line,
         },
       ]}
     >
-      <Label style={{ fontSize: 12, color: active ? t.primary : t.muted }}>
-        {title}
-      </Label>
+      {icon && (
+        <Icon name={icon} size={18} color={active ? t.primary : t.muted} />
+      )}
+      {(!iconOnly || !icon) && (
+        <Text
+          numberOfLines={1}
+          style={{
+            fontSize: 12,
+            lineHeight: 18,
+            fontWeight: '500',
+            color: active ? t.primary : t.muted,
+            textAlign: 'center',
+            textAlignVertical: 'center',
+            includeFontPadding: false,
+          }}
+        >
+          {title}
+        </Text>
+      )}
     </Pressable>
+  );
+}
+export function ChipBar({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const { fontScale } = useWindowDimensions();
+  const height = Math.max(36, Math.ceil(18 * fontScale + 16)) + 8;
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      style={[{ height, minHeight: height, flexGrow: 0, flexShrink: 0 }, style]}
+      contentContainerStyle={{ alignItems: 'center', paddingVertical: 3 }}
+    >
+      {children}
+    </ScrollView>
   );
 }
 export function Screen({
@@ -269,13 +321,19 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
+  iconOnlyButton: { width: 44, minHeight: 44, paddingHorizontal: 0 },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 0,
+    flexShrink: 0,
+    alignSelf: 'flex-start',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderRadius: 20,
     marginRight: 8,
-    marginBottom: 6,
   },
   header: {
     padding: 16,

@@ -1,16 +1,24 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-native/no-inline-styles */
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-void */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
-  ScrollView,
   TextInput,
   View,
 } from 'react-native';
-import { Button, Chip, Empty, Label, Screen, styles } from '../components/UI';
+import {
+  Button,
+  Chip,
+  ChipBar,
+  Empty,
+  Label,
+  Screen,
+  styles,
+  type IconName,
+} from '../components/UI';
 import { FileItem } from '../components/FileItem';
 import { storage } from '../services/native';
 import { useAppStore } from '../store/useAppStore';
@@ -33,6 +41,16 @@ const categories: FileCategory[] = [
   'archives',
   'other',
 ];
+const categoryIcons: Record<FileCategory, IconName> = {
+  images: 'image-outline',
+  videos: 'video-outline',
+  audio: 'music-note-outline',
+  pdfs: 'file-pdf-box',
+  documents: 'file-document-outline',
+  apks: 'android',
+  archives: 'folder-zip-outline',
+  other: 'file-outline',
+};
 export function FileBrowserScreen({ route }: { route: Route }) {
   const t = useTheme();
   const settings = useAppStore(s => s.settings);
@@ -212,18 +230,14 @@ export function FileBrowserScreen({ route }: { route: Route }) {
         }}
       />
       {route.name === 'search' && !query && recent.length > 0 && (
-        <ScrollView
-          horizontal
-          style={{ maxHeight: 42, marginTop: 8 }}
-          showsHorizontalScrollIndicator={false}
-        >
+        <ChipBar style={{ marginTop: 8 }}>
           {recent.map(term => (
             <Chip key={term} title={term} onPress={() => setQuery(term)} />
           ))}
-        </ScrollView>
+        </ChipBar>
       )}
       <View style={[styles.between, { paddingVertical: 8 }]}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <ChipBar style={{ flex: 1, flexGrow: 1, minWidth: 0 }}>
           {(
             ['newest', 'oldest', 'largest', 'smallest', 'name'] as FileSort[]
           ).map(value => (
@@ -234,25 +248,26 @@ export function FileBrowserScreen({ route }: { route: Route }) {
               onPress={() => setSort(value)}
             />
           ))}
-        </ScrollView>
+        </ChipBar>
         <Button
-          title={grid ? 'List' : 'Grid'}
+          title={grid ? 'Switch to list view' : 'Switch to grid view'}
+          icon={grid ? 'view-list' : 'view-grid-outline'}
+          iconOnly
           secondary
           onPress={() => setGrid(!grid)}
         />
       </View>
-      <ScrollView
-        horizontal
-        style={{ maxHeight: 43 }}
-        showsHorizontalScrollIndicator={false}
-      >
+      <ChipBar>
         <Chip
           title="Filters"
+          icon="tune-variant"
+          iconOnly
           active={advanced}
           onPress={() => setAdvanced(!advanced)}
         />
         <Chip
           title="All types"
+          icon="file-multiple-outline"
           active={!category}
           onPress={() => setCategory(undefined)}
         />
@@ -260,17 +275,14 @@ export function FileBrowserScreen({ route }: { route: Route }) {
           <Chip
             key={value}
             title={value}
+            icon={categoryIcons[value]}
             active={category === value}
             onPress={() => setCategory(value)}
           />
         ))}
-      </ScrollView>
+      </ChipBar>
       {route.name === 'large' && (
-        <ScrollView
-          horizontal
-          style={{ maxHeight: 42 }}
-          showsHorizontalScrollIndicator={false}
-        >
+        <ChipBar>
           {[10, 50, 100, 500].map(size => (
             <Chip
               key={size}
@@ -279,14 +291,10 @@ export function FileBrowserScreen({ route }: { route: Route }) {
               onPress={() => setMinMB(String(size))}
             />
           ))}
-        </ScrollView>
+        </ChipBar>
       )}
       {route.name === 'old' && (
-        <ScrollView
-          horizontal
-          style={{ maxHeight: 42 }}
-          showsHorizontalScrollIndicator={false}
-        >
+        <ChipBar>
           {[30, 90, 180, 365, 730].map(days => (
             <Chip
               key={days}
@@ -295,7 +303,7 @@ export function FileBrowserScreen({ route }: { route: Route }) {
               onPress={() => setOldDays(days)}
             />
           ))}
-        </ScrollView>
+        </ChipBar>
       )}
       {advanced && (
         <View style={{ gap: 8, paddingVertical: 8 }}>
@@ -346,7 +354,13 @@ export function FileBrowserScreen({ route }: { route: Route }) {
       {error && (
         <View style={{ paddingVertical: 10, gap: 8 }}>
           <Label style={{ color: t.danger }}>{error}</Label>
-          <Button title="Retry" secondary onPress={() => void load(true)} />
+          <Button
+            title="Retry"
+            icon="refresh"
+            iconOnly
+            secondary
+            onPress={() => void load(true)}
+          />
         </View>
       )}
       <FlatList
@@ -420,7 +434,9 @@ export function FileBrowserScreen({ route }: { route: Route }) {
               )}
             </Label>
             <Button
-              title="Clear"
+              title="Clear selection"
+              icon="close"
+              iconOnly
               secondary
               onPress={() => setSelected(new Map())}
             />

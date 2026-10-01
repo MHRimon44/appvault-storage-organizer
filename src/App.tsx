@@ -65,7 +65,10 @@ function Root() {
   }, []);
   return (
     <>
-      <StatusBar barStyle={t.isDark ? 'light-content' : 'dark-content'} />
+      <StatusBar
+        backgroundColor={t.bg}
+        barStyle={t.isDark ? 'light-content' : 'dark-content'}
+      />
       {initialized ? (
         <AppNavigator />
       ) : (

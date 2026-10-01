@@ -38,10 +38,17 @@ export const useAppStore = create<State>((set, get) => ({
   tab: name => set({ routes: [{ name }] }),
   refresh: () => set(s => ({ revision: s.revision + 1 })),
   update: async changes => {
-    const settings = { ...get().settings, ...changes };
-    await storage.settings(settings);
+    const previous = get().settings;
+    const settings = { ...previous, ...changes };
+    // Controlled inputs need the new value before native persistence completes.
     set({ settings });
-    get().refresh();
+    try {
+      await storage.settings(settings);
+      get().refresh();
+    } catch (error) {
+      if (get().settings === settings) set({ settings: previous });
+      throw error;
+    }
   },
   boot: async () => {
     const settings = await storage.initialize();

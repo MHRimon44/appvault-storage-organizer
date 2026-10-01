@@ -1,7 +1,13 @@
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable no-void */
-import React, { useEffect, useState } from 'react';
-import { Alert, Linking, PermissionsAndroid, Platform } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  Alert,
+  AppState,
+  Linking,
+  PermissionsAndroid,
+  Platform,
+} from 'react-native';
 import { Button, Card, Icon, Label, Screen } from '../components/UI';
 import { storage } from '../services/native';
 import { useAppStore } from '../store/useAppStore';
@@ -13,10 +19,16 @@ export function PermissionScreen() {
   const task = useTask();
   const busy = useAppStore(s => s.busy);
   const [access, setAccess] = useState<AccessState | null>(null);
-  const reload = async () => setAccess(await storage.access());
+  const reload = useCallback(async () => setAccess(await storage.access()), []);
   useEffect(() => {
     void reload().catch(() => {});
-  }, []);
+    const listener = AppState.addEventListener('change', state => {
+      if (state === 'active') void reload().catch(() => {});
+    });
+    return () => listener.remove();
+  }, [reload]);
+  const fullMediaAccess =
+    !!access?.images && !!access?.videos && !!access?.audio;
   const media = async () => {
     try {
       if (Number(Platform.Version) >= 33) {
@@ -80,35 +92,37 @@ export function PermissionScreen() {
           processed locally. Google services handle ads and purchases.
         </Label>
       </Card>
-      <Card>
-        <Label title>Photos, videos & audio</Label>
-        <Label muted>
-          Optional library access lets you organize media. On supported Android
-          versions, you can choose a limited selection.
-        </Label>
-        <Label muted style={{ fontSize: 12 }}>
-          Images:{' '}
-          {access?.images
-            ? 'Full access'
-            : access?.partial
-            ? 'Selected only'
-            : 'Not granted'}{' '}
-          · Videos:{' '}
-          {access?.videos
-            ? 'Full access'
-            : access?.partial
-            ? 'Selected only'
-            : 'Not granted'}{' '}
-          · Audio: {access?.audio ? 'Granted' : 'Not granted'}
-        </Label>
-        <Button
-          title="Choose media access"
-          secondary
-          icon="image-multiple-outline"
-          disabled={busy}
-          onPress={() => void media()}
-        />
-      </Card>
+      {access && !fullMediaAccess && (
+        <Card>
+          <Label title>Photos, videos & audio</Label>
+          <Label muted>
+            Optional library access lets you organize media. On supported
+            Android versions, you can choose a limited selection.
+          </Label>
+          <Label muted style={{ fontSize: 12 }}>
+            Images:{' '}
+            {access?.images
+              ? 'Full access'
+              : access?.partial
+              ? 'Selected only'
+              : 'Not granted'}{' '}
+            · Videos:{' '}
+            {access?.videos
+              ? 'Full access'
+              : access?.partial
+              ? 'Selected only'
+              : 'Not granted'}{' '}
+            · Audio: {access?.audio ? 'Granted' : 'Not granted'}
+          </Label>
+          <Button
+            title="Choose media access"
+            secondary
+            icon="image-multiple-outline"
+            disabled={busy}
+            onPress={() => void media()}
+          />
+        </Card>
+      )}
       <Card>
         <Label title>Folders & documents</Label>
         <Label muted>

@@ -11,14 +11,7 @@ export function useTask() {
     });
     try {
       if (kind === 'scan') {
-        const result = await storage.scan();
-        if (result.warnings.length)
-          Alert.alert('Scan coverage', result.warnings.join('\n'));
-        if (result.canceled)
-          Alert.alert(
-            'Scan stopped',
-            'Completed sources remain indexed. You can rescan at any time.',
-          );
+        await storage.scan();
       } else {
         const result = await storage.hash();
         if (result.warnings)

@@ -1,12 +1,11 @@
-/* eslint-disable react-native/no-inline-styles */
 /* eslint-disable no-void */
-import React from 'react';
-import { Alert, View } from 'react-native';
-import { AdsConsent } from 'react-native-google-mobile-ads';
+/* eslint-disable react-native/no-inline-styles */
+import React, {useState} from 'react';
+import { Alert, Pressable, Switch, View } from 'react-native';
 import {
   Button,
   Card,
-  Chip,
+  Icon,
   Label,
   Row,
   Screen,
@@ -14,18 +13,37 @@ import {
 } from '../components/UI';
 import { useAppStore } from '../store/useAppStore';
 import { useTask } from '../hooks/useTask';
-import { usePremium } from '../hooks/usePremium';
 import { storage } from '../services/native';
 import { errorMessage } from '../utils/format';
-import type { AppSettings, FileSort } from '../types';
+import type { FileSort } from '../types';
 import { config } from '../config/app';
+import {useTheme} from '../theme';
+
+function SettingsDropdown<T extends string | number>({label, value, options, disabled, onChange}: {label: string; value: T; options: {value: T; label: string}[]; disabled: boolean; onChange(value: T): void}) {
+  const t = useTheme();
+  const [open, setOpen] = useState(false);
+  const expanded = open && !disabled;
+  return <View style={{gap: 6}}>
+    <Label style={{fontWeight: '600'}}>{label}</Label>
+    <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${options.find(option => option.value === value)?.label ?? value}`} accessibilityState={{disabled, expanded}} disabled={disabled} onPress={() => setOpen(!open)} style={{minHeight: 44, paddingHorizontal: 12, borderWidth: 1, borderColor: t.line, borderRadius: 12, backgroundColor: t.bg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', opacity: disabled ? 0.65 : 1}}>
+      <Label>{options.find(option => option.value === value)?.label ?? String(value)}</Label><Icon name={expanded ? 'chevron-up' : 'chevron-down'}/>
+    </Pressable>
+    {expanded && <View accessibilityRole="radiogroup" style={{borderWidth: 1, borderColor: t.line, borderRadius: 12, overflow: 'hidden'}}>{options.map(option => <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{checked: option.value === value}} onPress={() => {setOpen(false); onChange(option.value);}} style={{minHeight: 44, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: option.value === value ? t.soft : t.surface}}><Label>{option.label}</Label>{option.value === value && <Icon name="check" color={t.primary}/>}</Pressable>)}</View>}
+  </View>;
+}
 export function SettingsScreen() {
   const settings = useAppStore(s => s.settings);
   const update = useAppStore(s => s.update);
   const push = useAppStore(s => s.push);
   const busy = useAppStore(s => s.busy);
   const task = useTask();
-  const { restore, premium } = usePremium();
+  const t = useTheme();
+  const [saving, setSaving] = useState(false);
+  const change = async (changes: Parameters<typeof update>[0]) => {
+    setSaving(true);
+    try {await update(changes);} catch (e) {Alert.alert('Unable to save settings', errorMessage(e));}
+    finally {setSaving(false);}
+  };
   const run = async (fn: () => Promise<unknown>) => {
     try {
       await fn();
@@ -50,54 +68,16 @@ export function SettingsScreen() {
   return (
     <Screen title="Settings" subtitle="Local by design">
       <Card>
-        <Label style={{ fontWeight: '600' }}>Appearance</Label>
-        <View style={styles.wrap}>
-          {(['system', 'light', 'dark'] as AppSettings['theme'][]).map(
-            theme => (
-              <Chip
-                key={theme}
-                title={theme}
-                active={settings.theme === theme}
-                onPress={() => void run(() => update({ theme }))}
-              />
-            ),
-          )}
+        <View style={styles.between}>
+          <Label title>Preferences</Label>
         </View>
-        <Label style={{ fontWeight: '600' }}>Default sorting</Label>
-        <View style={styles.wrap}>
-          {(
-            ['newest', 'oldest', 'largest', 'smallest', 'name'] as FileSort[]
-          ).map(sort => (
-            <Chip
-              key={sort}
-              title={sort}
-              active={settings.sort === sort}
-              onPress={() => void run(() => update({ sort }))}
-            />
-          ))}
+        <View style={styles.between}>
+          <View style={{gap: 4}}><Label style={{fontWeight: '600'}}>Appearance</Label><Label muted>{t.isDark ? 'Dark' : 'Light'}</Label></View>
+          <Switch accessibilityLabel="Dark appearance" value={t.isDark} disabled={saving} onValueChange={dark => void change({theme: dark ? 'dark' : 'light'})} trackColor={{false: t.line, true: t.primary}}/>
         </View>
-        <Label style={{ fontWeight: '600' }}>Large file threshold</Label>
-        <View style={styles.wrap}>
-          {[10, 50, 100, 500].map(largeMB => (
-            <Chip
-              key={largeMB}
-              title={`${largeMB} MB`}
-              active={settings.largeMB === largeMB}
-              onPress={() => void run(() => update({ largeMB }))}
-            />
-          ))}
-        </View>
-        <Label style={{ fontWeight: '600' }}>Older file threshold</Label>
-        <View style={styles.wrap}>
-          {[30, 90, 180, 365, 730].map(oldDays => (
-            <Chip
-              key={oldDays}
-              title={`${oldDays} days`}
-              active={settings.oldDays === oldDays}
-              onPress={() => void run(() => update({ oldDays }))}
-            />
-          ))}
-        </View>
+        <SettingsDropdown<FileSort> label="Default sorting" value={settings.sort} disabled={saving} options={[{value: 'newest', label: 'Newest first'}, {value: 'oldest', label: 'Oldest first'}, {value: 'largest', label: 'Largest first'}, {value: 'smallest', label: 'Smallest first'}, {value: 'name', label: 'Name'}]} onChange={sort => void change({sort})}/>
+        <SettingsDropdown label="Large file threshold" value={settings.largeMB} disabled={saving} options={[10, 50, 100, 500].map(value => ({value, label: `${value} MB`}))} onChange={largeMB => void change({largeMB})}/>
+        <SettingsDropdown label="Older file threshold" value={settings.oldDays} disabled={saving} options={[30, 90, 180, 365, 730].map(value => ({value, label: `${value} days`}))} onChange={oldDays => void change({oldDays})}/>
       </Card>
       <Card>
         <Row
@@ -120,11 +100,6 @@ export function SettingsScreen() {
           title="Scan history"
           icon="history"
           onPress={() => push({ name: 'history' })}
-        />
-        <Row
-          title="Clear search history"
-          icon="magnify"
-          onPress={() => void run(() => storage.clearRecent())}
         />
         <Row
           title="Clear local scan cache"
@@ -168,41 +143,13 @@ export function SettingsScreen() {
           onPress={() =>
             Alert.alert(
               'Import local backup?',
-              'This merges settings and history. It grants no file permissions and changes no purchase ownership.',
+              'This merges settings and history. It does not grant file permissions.',
               [
                 { text: 'Cancel' },
                 { text: 'Choose backup', onPress: () => void backup('import') },
               ],
             )
           }
-        />
-        <Row
-          title={premium.isPro ? 'AppVault Pro active' : 'AppVault Pro'}
-          subtitle="One-time upgrade · remove ads"
-          icon="shield-star-outline"
-          onPress={() => push({ name: 'premium' })}
-        />
-        <Row
-          title="Restore purchases"
-          icon="restore"
-          onPress={() =>
-            void run(async () => {
-              await restore();
-              Alert.alert(
-                'Restore finished',
-                useAppStore.getState().premium.isPro
-                  ? 'AppVault Pro is active.'
-                  : config.billingEnabled
-                  ? 'No active Pro purchase was found.'
-                  : 'Purchases are not enabled in this build.',
-              );
-            })
-          }
-        />
-        <Row
-          title="Ad privacy choices"
-          icon="shield-account-outline"
-          onPress={() => void run(() => AdsConsent.showPrivacyOptionsForm())}
         />
         <Row
           title="Privacy, terms & about"
