@@ -131,7 +131,7 @@ android {
             }
         }
     }
-    buildTypes { release { signingConfig signingConfigs.appVaultRelease } }
+    buildTypes { release { signingConfig signingConfigs.debug } }
     defaultConfig {
         minSdkVersion 29
         buildConfigField "String", "BILLING_PUBLIC_KEY", "\"" + (project.findProperty("APPVAULT_BILLING_PUBLIC_KEY") ?: "") + "\""
